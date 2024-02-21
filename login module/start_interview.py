@@ -9,11 +9,15 @@ import numpy as np
 import math
 import speech_recognition as sr
 import evaluate
-
+import pyttsx3
+from gtts import gTTS
+from io import BytesIO
+import pygame
 
 from dotenv import load_dotenv
 load_dotenv()
 st.session_state.interaction = {}
+st.session_state.feedback = []
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 text_model= genai.GenerativeModel("gemini-pro")
 # Load the pre-trained BERT model
@@ -62,7 +66,8 @@ def generate_feedback(question, answer):
 
 def generate_questions(roles, data):
     questions = []
-    text = f"If this is not a resume then return text uploaded pdf is not a resume. this is a resume overview of the candidate. The candidate details are in {data}. The candidate has applied for the role of {roles}. Generate questions for the candidate based on the role applied and on the Resume of the candidate. Not always necceassary to ask only technical questions related to the role. Ask some personal questions too. Ask no additional questions. Dont categorize the questions. No of questions should range from 2 questions only. Ask one question at a time only. directly ask the questions not anything else. Also ask the questions in a polite way. Ask the questions in a way that the candidate can understand the question. and make sure the questions are related to these metrics: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience."
+    text = f"If this is not a resume then return text uploaded pdf is not a resume. this is a resume overview of the candidate. The candidate details are in {data}. The candidate has applied for the role of {roles}. Generate questions for the candidate based on the role applied and on the Resume of the candidate. Not always necceassary to ask only technical questions related to the role. Ask some personal questions too. Ask no additional questions. Dont categorize the questions. ask 1-2 questions only. directly ask the questions not anything else. Also ask the questions in a polite way. Ask the questions in a way that the candidate can understand the question. and make sure the questions are related to these metrics: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. dont tell anything else just give me the questions."
+    # if needed ask multiple questions. but ask one question at a time only and note more than 7. 
     response = text_model.generate_content(text)
     response.resolve()
     # slipt the response into questions either by \n or by ? or by . or by !
@@ -72,7 +77,7 @@ def generate_questions(roles, data):
 
 
 def generate_overall_feedback(data, percent, answer, questions):
-    test = f"Here is the overview of the candidate {data}. Be just like a interviewer you need to give a feedback about the process. In the interview the questions asked were {questions}. The candidate has answered the questions as follows: {answer}. Based on the answers provided, the candidate has scored {percent}. dont tell the percent of the candidate, but rate them on 10 based on their answers. Make sure the answers are making sense and dont say over good on feedback you are interviewer, but make sure you are talking point to point. If the logic behind the answer is not provided in a good way, directly tell the candidate the point to point answer was not provided. then tell the important mistakes candidate made and how to improve it.The candidate has scored {percent} in the interview. If the candidate has answered the questions well and has a good understanding of the concepts. The candidate has scored well in the interview. If the answers are not good then tell the candidate has to improve alot with the answers. Give me 2 paragraphs of feedback. 1st para about how was the interview and 2nd para about how the candidate can improve."
+    test = f"Here is the overview of the candidate {data}. Be just like a interviewer you need to give a feedback about the process. In the interview the questions asked were {questions}. The candidate has answered the questions as follows: {answer}. Based on the answers provided, the candidate has scored {percent}. dont tell the percent of the candidate, but rate them on 10 based on their answers. Make sure the answers are making sense and dont say over good on feedback you are interviewer, but make sure you are talking point to point. If the logic behind the answer is not provided in a good way, directly tell the candidate the point to point answer was not provided. then tell the important mistakes candidate made and how to improve it.The candidate has scored {percent} in the interview. If the candidate has answered the questions well and has a good understanding of the concepts. The candidate has scored well in the interview. If the answers are not good then tell the candidate has to improve alot with the answers. Give me 2 paragraphs of feedback. 1st para about how was the interview and 2nd para about how the candidate can improve. dont fake. just write about what answer was given by the candidate. dont write anything else. just the feedback."
     # st.write(test)
     response = text_model.generate_content(test)
     response.resolve()
@@ -101,12 +106,20 @@ def stop_recording():
     with sr.Microphone() as source:
         r.adjust_for_ambient_noise(source)
         st.error("Recording stopped")
-        return
+        return    
+
+
+def speak(text, language='en'):
+    mp3_fo = BytesIO()
+    tts = gTTS(text=text, lang=language)
+    tts.write_to_fp(mp3_fo)
+    return mp3_fo
+
     
         
 def generate_metrics(data, answer, question):
     metrics = []
-    text = f"Here is the overview of the candidate {data}. In the interview the question asked was {question}. The candidate has answered the question as follows: {answer}. Based on the answers provided, give me the neccessary metrics not anything else. the metrics related to: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. give me the metrics for each of the above mentioned skills. just give me the ratings out of 10 for each of the skills nothing else."
+    text = f"Here is the overview of the candidate {data}. In the interview the question asked was {question}. The candidate has answered the question as follows: {answer}. Based on the answers provided, give me the metrics related to: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. give me the metrics for each of the above mentioned skills. just give me the ratings out of 10 for each of the skills nothing else. if there is nothing then give minimum 4. dont even write /10. just give me the numbers"
     response = text_model.generate_content(text)
     response.resolve()
     metrics.append(response.text)
@@ -114,7 +127,7 @@ def generate_metrics(data, answer, question):
   
 
 def user_interview():
-    
+    ttts = pyttsx3.init()
     st.title("Mock Interview")
 
 
@@ -137,6 +150,9 @@ def user_interview():
     
     else:   
         # logged in
+        pygame.init()
+        pygame.mixer.init()
+
         uploaded_file = st.file_uploader("Upload your resume in simple Document Format", type=["pdf"])
         roles_applied = []
         if uploaded_file is not None:
@@ -157,6 +173,7 @@ def user_interview():
                 roles_applied.append(roles)
                 st.write(f"Selected roles: {roles}")
                 questions = generate_questions(roles, updated_data)
+                print(questions)
                 feedback = []
                 answers = []
                 ans = ""
@@ -167,6 +184,10 @@ def user_interview():
                 time.sleep(5)
                 for i in range(len(questions)):
                     st.write(questions[i])
+                    # ttts.say(questions[i])
+                    # ques = speak(questions[i])
+                    # pygame.mixer.music.load(ques, 'mp3')
+                    # pygame.mixer.music.play()
                     ans = store_audio_text()
                     # st.button("stop recording", on_click=stop_recording)
                     st.success(ans)
@@ -177,13 +198,14 @@ def user_interview():
                     feedback.append(generate_overall_feedback(data, percent, answers[i], questions[i]))
                     metrics.append(generate_metrics(data, answers[i], questions[i]))
                     # store the interaction into a dictionary
-                    interaction[questions[i]] = answers[i]
-                    # keep on adding the interaction to the session state
+                    interaction["Question Asked:: "+ questions[i]] = "Answer by user:: "+ answers[i]
+                    st.session_state.feedback = feedback
                     st.session_state.interaction = interaction
                 print(st.session_state.interaction)
                 print(metrics)
                 print(feedback)
                 st.button("Submit", on_click=evaluate.evaluate_app)
+                st.stop()
                 # if st.button("Submit"):
                 #     print(feedback)
                 #     print(metrics)
