@@ -11,8 +11,9 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 text_model= genai.GenerativeModel("gemini-pro")
 
 
-def getmetrics(interaction):
-    text = f"here is the interaction of the interview: {interaction}. Please evaluate the interview based on the interaction. rate me the following metrics on a scale of 1 to 10. 1 being the lowest and 10 being the highest. Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. just give the ratings for the metrics. You can also give the overall rating. i dont need the feedback. just the ratings. no other text is required. just the ratings."
+
+def getmetrics(interaction, resume):
+    text = f"This is the users resume: {resume}. And here is the interaction of the interview: {interaction}. Please evaluate the interview based on the interaction and the resume. rate me the following metrics on a scale of 1 to 10. 1 being the lowest and 10 being the highest. Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. just give the ratings for the metrics. You can also give the overall rating. i dont need the feedback. just the ratings. no other text is required. just the ratings. give me plain text not bold text."
 
     response = text_model.generate_content(text)
     response.resolve()
@@ -41,7 +42,9 @@ def evaluate_app():
         # print the metrics from start_interview.py in sesssion state
         # st.write('Your interview has been evaluated')
         st.markdown('---')
-        metric = getmetrics(st.session_state.interaction)
+        resume = st.session_state.resume
+
+        metric = getmetrics(st.session_state.interaction, resume)
         # st.write(metric)
         # ['Communication skills: N/A\nTeamwork and collaboration: N/A\nProblem-solving and critical thinking: N/A\nTime management and organization: N/A\nAdaptability and resilience: N/A'] this is how metric will return the value
         # convert the string to dictionary

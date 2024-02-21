@@ -11,7 +11,12 @@ import start_interview as i, evaluate
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 text_model= genai.GenerativeModel("gemini-pro")
 
+# if 'history' not in st.session_state:
+#     st.session_state.history['Question'] = 'Answer'
+
 st.session_state.history = {}
+print(st.session_state.history)
+
 
 def display_PDF(file):
     with open(file, "rb") as f:
@@ -74,6 +79,7 @@ def chat_app():
             st.markdown('---')
             st.write('History of chat with AI')
             st.write(st.session_state.history)
+            print(st.session_state.history)
 
             
 

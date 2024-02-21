@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 st.session_state.interaction = {}
 st.session_state.feedback = []
+st.session_state.resume = ""
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 text_model= genai.GenerativeModel("gemini-pro")
 # Load the pre-trained BERT model
@@ -66,7 +67,7 @@ def generate_feedback(question, answer):
 
 def generate_questions(roles, data):
     questions = []
-    text = f"If this is not a resume then return text uploaded pdf is not a resume. this is a resume overview of the candidate. The candidate details are in {data}. The candidate has applied for the role of {roles}. Generate questions for the candidate based on the role applied and on the Resume of the candidate. Not always necceassary to ask only technical questions related to the role. Ask some personal questions too. Ask no additional questions. Dont categorize the questions. ask 1-2 questions only. directly ask the questions not anything else. Also ask the questions in a polite way. Ask the questions in a way that the candidate can understand the question. and make sure the questions are related to these metrics: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. dont tell anything else just give me the questions."
+    text = f"If this is not a resume then return text uploaded pdf is not a resume. this is a resume overview of the candidate. The candidate details are in {data}. The candidate has applied for the role of {roles}. Generate questions for the candidate based on the role applied and on the Resume of the candidate. Not always necceassary to ask only technical questions related to the role but the logic of question should include the job applied for because there might be some deep tech questions which the user might not know. Ask some personal questions too. Ask no additional questions. Dont categorize the questions. ask 2 questions only. directly ask the questions not anything else. Also ask the questions in a polite way. Ask the questions in a way that the candidate can understand the question. and make sure the questions are related to these metrics: Communication skills, Teamwork and collaboration, Problem-solving and critical thinking, Time management and organization, Adaptability and resilience. dont tell anything else just give me the questions. if there is a limit in no of questions, ask or try questions that covers all need."
     # if needed ask multiple questions. but ask one question at a time only and note more than 7. 
     response = text_model.generate_content(text)
     response.resolve()
@@ -128,7 +129,7 @@ def generate_metrics(data, answer, question):
 
 def user_interview():
     ttts = pyttsx3.init()
-    st.title("Mock Interview")
+    st.title('Welcome to Mock Interview ' + st.session_state["username"] + '\n :violet[Good luck]')
 
 
     st.write("Welcome to the mock interview app. This app will help you prepare for your next interview. You can practice your responses to common interview questions and receive feedback on your responses.")
@@ -162,6 +163,7 @@ def user_interview():
             # st.write(data)
             # st.write(getallinfo(data))
             updated_data = getallinfo(data)
+            st.session_state.resume = updated_data
             # if the data contains not in the response then return the response
             # # st.write(updated_data)
             # if "not" in updated_data:
